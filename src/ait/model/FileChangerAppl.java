@@ -2,63 +2,71 @@ package ait.model;
 
 import ait.model.action.Action;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
 
 public class FileChangerAppl {
-    public static void main(String[] args) {
-        try (
-                BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
-                PrintWriter consoleWriter = new PrintWriter(System.out, true)
-        ) {
-            consoleWriter.print("Введите имя входного файла: ");
-            consoleWriter.flush();
-            String inputFile = consoleReader.readLine();
+     public static void main(String[] args) {
+            try (
+                    BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+                    PrintWriter printWriter = new PrintWriter(System.out, true)
+            ) {
+                printWriter.println("Enter inputFile name: ");
+                String inputFile = br.readLine();
 
-            consoleWriter.print("Введите имя выходного файла: ");
-            consoleWriter.flush();
-            String outputFile = consoleReader.readLine();
+                printWriter.println("Enter outPutFile name: ");
+                String outputFile = br.readLine();
 
-            consoleWriter.print("Введите действие (sort, reverse, shuffle): ");
-            consoleWriter.flush();
-            String actionName = consoleReader.readLine();
+                printWriter.println("Enter action (Sort, Reverse, Shuffle): ");
+                String actionName = br.readLine();
 
-            // Чтение строк из файла
-            List<String> lines = Files.readAllLines(Paths.get(inputFile));
+                Action action = loadActionByName(actionName);
+                if (action == null) {
+                    printWriter.println("Unknow action: " + actionName);
+                    return;
+                }
 
-            // Загрузка действия по имени
-            Action action = getActionByName(actionName);
+                List<String> lines = readLinesFromFile(inputFile);
+                List<String> result = action.perform(lines);
+                writeLinesToFile(result, outputFile);
 
-            // Выполнение действия
-            List<String> result = action.perform(lines);
+                printWriter.println("Operation '" + actionName + "' completed successfully.");
+            } catch (Exception e) {
+                System.err.println("Error: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
 
-            // Запись результата в файл
-            try (PrintWriter fileWriter = new PrintWriter(outputFile)) {
-                for (String line : result) {
-                    fileWriter.println(line);
+        private static Action loadActionByName(String name) {
+            try {
+                String className = "ait.model.action." + name;
+                Class<?> clazz = Class.forName(className);
+                return (Action) clazz.getDeclaredConstructor().newInstance();
+            } catch (Exception e) {
+                System.out.println("wrong: "+e.getMessage());
+                return null;
+            }
+        }
+
+
+
+        private static List<String> readLinesFromFile(String fileName) throws IOException {
+            List<String> lines = new ArrayList<>();
+            try (BufferedReader fileReader = new BufferedReader(new FileReader(fileName))) {
+                String line;
+                while ((line = fileReader.readLine()) != null) {
+                    lines.add(line);
                 }
             }
-
-            consoleWriter.println("Операция '" + actionName + "' успешно выполнена.");
-
-        } catch (Exception e) {
-            System.err.println("Ошибка: " + e.getMessage());
-            e.printStackTrace();
+            return lines;
         }
-    }
 
-    private static Action getActionByName(String name) throws Exception {
-        String className = "ait.model.action." + capitalize(name);
-        Class<?> clazz = Class.forName(className);
-        return (Action) clazz.getDeclaredConstructor().newInstance();
-    }
-
-    private static String capitalize(String str) {
-        if (str == null || str.isEmpty()) return str;
-        return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
-    }
+        private static void writeLinesToFile(List<String> lines, String fileName) throws IOException {
+            try (PrintWriter writer = new PrintWriter(fileName)) {
+                for (String line : lines) {
+                    writer.println(line);
+                }
+            }
+        }
 }
