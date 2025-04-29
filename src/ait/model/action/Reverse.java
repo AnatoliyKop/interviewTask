@@ -1,4 +1,5 @@
 package ait.model.action;
 
-public class Reverce {
+public class Reverse {
+
 }
